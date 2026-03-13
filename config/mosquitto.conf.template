@@ -1,0 +1,16 @@
+# MQTT-server managed configuration
+# Deployed by setup_pi.sh — editable via the MQTT Manager UI
+
+# --- Network ---
+listener 1883 0.0.0.0
+
+# --- Authentication ---
+allow_anonymous false
+password_file /etc/mosquitto/passwd
+
+# --- Logging ---
+# log_dest is set in /etc/mosquitto/mosquitto.conf — do not duplicate
+log_type all
+
+# --- Limits ---
+max_connections -1

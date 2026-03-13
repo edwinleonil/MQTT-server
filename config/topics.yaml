@@ -1,0 +1,47 @@
+# MQTT Topic Structure
+# This file defines a flexible topic hierarchy used by the MQTT Manager UI
+# for browsing, autocomplete, and documentation.
+#
+# Nodes with children are "branch" topics (folders).
+# Leaf nodes are "endpoint" topics that carry payloads.
+# Names in {braces} are dynamic placeholders (filled at runtime).
+#
+# The broker does NOT enforce this structure — clients can publish to any topic.
+
+topics:
+  home:
+    "{room}":
+      temperature:
+        description: "Temperature reading in °C"
+        example_payload: '{"value": 22.5, "unit": "C"}'
+      humidity:
+        description: "Relative humidity in %"
+        example_payload: '{"value": 55, "unit": "%"}'
+      light:
+        state:
+          description: "Light on/off state"
+          example_payload: '{"state": "on"}'
+        brightness:
+          description: "Light brightness 0-100"
+          example_payload: '{"level": 75}'
+
+  devices:
+    "{device_id}":
+      status:
+        description: "Device online/offline status"
+        example_payload: '{"online": true, "uptime": 3600}'
+      command:
+        description: "Commands sent to device"
+        example_payload: '{"action": "reboot"}'
+      telemetry:
+        description: "Device telemetry data"
+        example_payload: '{"cpu": 45, "mem": 512, "temp": 42.1}'
+
+  system:
+    broker:
+      status:
+        description: "Broker health status"
+        example_payload: '{"status": "running", "clients": 5}'
+      clients:
+        description: "Connected client count"
+        example_payload: '{"count": 5}'
