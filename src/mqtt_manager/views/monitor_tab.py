@@ -122,7 +122,6 @@ class MonitorTab(QWidget):
     def _connect_signals(self):
         self._sub_btn.clicked.connect(self._subscribe)
         self._unsub_btn.clicked.connect(self._unsubscribe)
-        self._clear_btn.clicked.connect(self._msg_model.removeRows, 0, self._msg_model.rowCount())
         self._clear_btn.clicked.connect(lambda: self._msg_model.setRowCount(0))
         self._pub_btn.clicked.connect(self._publish)
         self._mqtt.message_received.connect(self._on_message)

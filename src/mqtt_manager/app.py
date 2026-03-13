@@ -64,7 +64,6 @@ class MainWindow(QMainWindow):
 
         # --- Initial state: disable tabs that need connections ---
         self._set_ssh_tabs_enabled(False)
-        self._set_mqtt_tabs_enabled(False)
 
         # --- Wire signals ---
         self._connect_tab.ssh_state_changed.connect(self._on_ssh_state)
@@ -92,8 +91,7 @@ class MainWindow(QMainWindow):
             self._tabs.setTabEnabled(i, enabled)
 
     def _set_mqtt_tabs_enabled(self, enabled: bool):
-        monitor_index = self._tabs.indexOf(self._monitor_tab)
-        self._tabs.setTabEnabled(monitor_index, enabled)
+        pass  # Monitor tab is always accessible
 
     def _on_ssh_state(self, connected: bool):
         self._set_ssh_tabs_enabled(connected)

@@ -15,13 +15,15 @@ A PySide6 desktop application for managing a **Mosquitto MQTT broker** running o
 
 ```
 ┌──────────────────────┐           ┌──────────────────┐
-│  Desktop Machine     │   SSH     │  Raspberry Pi    │
+│  🖥️ Local PC         │   SSH     │  🍓 Raspberry Pi  │
 │                      │──(22)───▶ │                  │
 │  PySide6 App         │           │  Mosquitto       │
 │  ├─ paramiko (SSH)   │  MQTT     │  (systemd)       │
 │  └─ paho-mqtt ───────│─(1883)──▶│                  │
 └──────────────────────┘           └──────────────────┘
 ```
+
+**Legend:** 🖥️ = your local PC (where the app runs) · 🍓 = Raspberry Pi (where Mosquitto runs)
 
 ## Prerequisites
 
@@ -31,11 +33,14 @@ A PySide6 desktop application for managing a **Mosquitto MQTT broker** running o
 
 ## Pi Setup
 
+> All commands in this section run **on the Raspberry Pi** 🍓
+
 ### 1. Install Mosquitto
 
 Copy or clone this repository to the Pi, then run the bootstrap script:
 
 ```bash
+# 🍓 Raspberry Pi
 sudo bash scripts/setup_pi.sh
 ```
 
@@ -51,12 +56,14 @@ This will:
 Anonymous access is disabled by default. Add at least one user:
 
 ```bash
+# 🍓 Raspberry Pi
 sudo mosquitto_passwd -b /etc/mosquitto/passwd myuser mypassword
 ```
 
 ### 3. Verify the broker is running
 
 ```bash
+# 🍓 Raspberry Pi
 systemctl status mosquitto
 ```
 
@@ -67,10 +74,10 @@ You should see `active (running)`. Mosquitto is enabled as a systemd service, so
 Open two terminals on the Pi:
 
 ```bash
-# Terminal 1 — subscribe
+# 🍓 Raspberry Pi — Terminal 1 — subscribe
 mosquitto_sub -h localhost -t "test/#" -u myuser -P mypassword
 
-# Terminal 2 — publish
+# 🍓 Raspberry Pi — Terminal 2 — publish
 mosquitto_pub -h localhost -t "test/hello" -m "world" -u myuser -P mypassword
 ```
 
@@ -82,9 +89,12 @@ The setup script deploys a drop-in config to `/etc/mosquitto/conf.d/mqtt-server.
 
 ## Desktop Installation
 
+> All commands in this section run **on your local PC** 🖥️
+
 ### Install uv (if not already installed)
 
 ```bash
+# 🖥️ Local PC
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source $HOME/.local/bin/env
 ```
@@ -92,7 +102,7 @@ source $HOME/.local/bin/env
 ### Install and run
 
 ```bash
-# Clone the repo
+# 🖥️ Local PC
 git clone <repo-url> && cd MQTT-server
 
 # Install dependencies (creates a .venv automatically)
@@ -105,6 +115,7 @@ uv run mqtt-manager
 Or run as a Python module:
 
 ```bash
+# 🖥️ Local PC
 uv run python -m mqtt_manager
 ```
 
@@ -123,12 +134,41 @@ uv run python -m mqtt_manager
 
 ### Step-by-step
 
+> All steps below are performed **on your local PC** 🖥️ via the app. The app sends commands to the Pi over SSH/MQTT behind the scenes.
+
 1. **Connect tab** — Enter your Pi's IP address, SSH username/password (or key path), and MQTT credentials. Click **Connect SSH**, then **Connect MQTT**. Save as a profile for quick reconnection.
-2. **Server tab** — Verify Mosquitto is running (green "active" status). Use Start/Stop/Restart buttons. The log viewer auto-refreshes at a configurable interval.
-3. **Config tab** — Configuration loads automatically when SSH connects. Edit fields and click **Save & Restart** to push changes to the Pi.
-4. **Users tab** — View existing MQTT users. Click **Add User** to create a new one (username + password). Select a user and click **Remove User** to delete.
-5. **Topics tab** — The default topic hierarchy loads from `config/topics.yaml`. Add, remove, or rename topics. Click **Export YAML** to save changes.
-6. **Monitor tab** — Enter a topic filter (e.g. `home/#` or `+/temperature`) and click **Subscribe**. Messages appear in a live table. Use the publish panel at the bottom to send test messages.
+2. **Server tab** — Verify Mosquitto is running (green "active" status). Use Start/Stop/Restart buttons. The log viewer auto-refreshes at a configurable interval. *(executes `systemctl` commands on the Pi 🍓 via SSH)*
+3. **Config tab** — Configuration loads automatically when SSH connects. Edit fields and click **Save & Restart** to push changes to the Pi. *(reads/writes config files on the Pi 🍓 via SFTP)*
+4. **Users tab** — View existing MQTT users. Click **Add User** to create a new one (username + password). Select a user and click **Remove User** to delete. *(runs `mosquitto_passwd` on the Pi 🍓 via SSH)*
+5. **Topics tab** — The default topic hierarchy loads from `config/topics.yaml`. Add, remove, or rename topics. Click **Export YAML** to save changes. *(local files only 🖥️)*
+6. **Monitor tab** — Enter a topic filter (e.g. `home/#` or `+/temperature`) and click **Subscribe**. Messages appear in a live table. Use the publish panel at the bottom to send test messages. *(communicates with the MQTT broker on the Pi 🍓)*
+
+### Monitor tab examples
+
+#### Subscribing — topic filter examples
+
+| Filter | Matches |
+|--------|---------|
+| `#` | All topics (wildcard) |
+| `home/#` | Everything under `home/` (e.g. `home/living_room/temperature`, `home/bedroom/light/state`) |
+| `home/+/temperature` | Temperature in any room (e.g. `home/kitchen/temperature`, `home/garage/temperature`) |
+| `devices/+/status` | Status of any device (e.g. `devices/sensor01/status`) |
+| `home/living_room/#` | All topics for the living room |
+
+Enter one of the filters above in the **Topic Filter** field and click **Subscribe**.
+
+#### Publishing — example topics and payloads
+
+| Topic | Payload | Description |
+|-------|---------|-------------|
+| `home/living_room/temperature` | `{"value": 22.5, "unit": "C"}` | Report temperature reading |
+| `home/bedroom/light/state` | `on` | Turn the bedroom light on |
+| `home/bedroom/light/brightness` | `75` | Set brightness to 75 % |
+| `devices/sensor01/command` | `{"action": "reboot"}` | Send reboot command to a device |
+| `devices/sensor01/status` | `online` | Report device status |
+| `system/broker/clients` | `3` | Publish current client count |
+
+Enter the **Topic** and **Payload** in the publish panel at the bottom of the Monitor tab, choose a QoS level (0, 1, or 2), and click **Publish**.
 
 ## Topic Structure
 
@@ -148,9 +188,16 @@ system/broker/clients        — Client count
 
 Names in `{braces}` are dynamic placeholders — replace them with actual values when publishing (e.g. `home/living_room/temperature`). The broker does **not** enforce this structure — clients can publish to any topic. The Topics tab serves as a reference and autocomplete source.
 
+## Connecting an External Client
+
+Any MQTT client can connect to the broker on the Pi using host `PI_IP`, port `1883`, and the MQTT credentials created during [Pi Setup](#2-create-an-mqtt-user).
+
+A companion application for connecting as an MQTT client (or server) is available in the [TCP-IP-Modbus-MQTT-app](https://github.com/me1elar/TCP-IP-Modbus-MQTT-app) repository. See that project's README for setup and usage instructions.
+
 ## Running Tests
 
 ```bash
+# 🖥️ Local PC
 uv run pytest
 ```
 
@@ -163,11 +210,11 @@ Tests cover:
 
 | Problem | Solution |
 |---------|----------|
-| `mosquitto.service` fails to start | Check `sudo journalctl -xeu mosquitto.service` for errors. Common cause: duplicate directives between `/etc/mosquitto/mosquitto.conf` and the drop-in config. Ensure `log_dest`, `persistence`, and `persistence_location` are only set in one place. |
-| "SSH not connected" in the app | Verify the Pi's IP is reachable and SSH is enabled (`sudo systemctl enable ssh`). Check username/password or key path. |
-| MQTT connection refused | Ensure Mosquitto is running (`systemctl status mosquitto`). Verify port 1883 is not blocked by a firewall (`sudo ufw allow 1883` if using ufw). |
-| "command not found: uv" | Run `source $HOME/.local/bin/env` or restart your shell after installing uv. |
-| No MQTT messages received | Verify you have subscribed to the correct topic filter. Use `#` to match all topics. Check that the publishing client is using valid credentials. |
+| `mosquitto.service` fails to start | 🍓 Check `sudo journalctl -xeu mosquitto.service` for errors. Common cause: duplicate directives between `/etc/mosquitto/mosquitto.conf` and the drop-in config. Ensure `log_dest`, `persistence`, and `persistence_location` are only set in one place. |
+| "SSH not connected" in the app | 🖥️ Verify the Pi's IP is reachable and SSH is enabled (🍓 `sudo systemctl enable ssh`). Check username/password or key path. |
+| MQTT connection refused | 🍓 Ensure Mosquitto is running (`systemctl status mosquitto`). Verify port 1883 is not blocked by a firewall (`sudo ufw allow 1883` if using ufw). |
+| "command not found: uv" | 🖥️ Run `source $HOME/.local/bin/env` or restart your shell after installing uv. |
+| No MQTT messages received | 🖥️ Verify you have subscribed to the correct topic filter. Use `#` to match all topics. Check that the publishing client is using valid credentials. |
 
 ## Project Structure
 

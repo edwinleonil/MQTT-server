@@ -17,12 +17,12 @@ systemctl enable mosquitto
 echo "=== Creating password file ==="
 if [ ! -f "$PASSWD_FILE" ]; then
     touch "$PASSWD_FILE"
-    chmod 600 "$PASSWD_FILE"
-    chown mosquitto:mosquitto "$PASSWD_FILE"
-    echo "Password file created at $PASSWD_FILE"
-else
-    echo "Password file already exists at $PASSWD_FILE"
 fi
+# root owns the file (required by newer Mosquitto), group=mosquitto so the
+# broker process can read it, no access for others.
+chown root:mosquitto "$PASSWD_FILE"
+chmod 640 "$PASSWD_FILE"
+echo "Password file ready at $PASSWD_FILE (root:mosquitto 640)"
 
 echo "=== Ensuring log directory exists ==="
 mkdir -p "$LOG_DIR"

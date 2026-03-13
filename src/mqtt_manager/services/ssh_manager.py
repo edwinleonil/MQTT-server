@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shlex
+
 import paramiko
 from PySide6.QtCore import QObject, QThread, Signal
 
@@ -167,14 +169,26 @@ class SSHManager(QObject):
         return users
 
     def add_user(self, username: str, password: str) -> tuple[str, str, int]:
-        return self.exec_command(
-            f"sudo mosquitto_passwd -b {self.PASSWD_FILE} {username} {password}"
+        stdout, stderr, code = self.exec_command(
+            f"sudo mosquitto_passwd -b {self.PASSWD_FILE}"
+            f" {shlex.quote(username)} {shlex.quote(password)}"
         )
+        if code == 0:
+            self._reload_broker()
+        return stdout, stderr, code
 
     def remove_user(self, username: str) -> tuple[str, str, int]:
-        return self.exec_command(
-            f"sudo mosquitto_passwd -D {self.PASSWD_FILE} {username}"
+        stdout, stderr, code = self.exec_command(
+            f"sudo mosquitto_passwd -D {self.PASSWD_FILE}"
+            f" {shlex.quote(username)}"
         )
+        if code == 0:
+            self._reload_broker()
+        return stdout, stderr, code
+
+    def _reload_broker(self):
+        """Send SIGHUP to Mosquitto so it re-reads the password file."""
+        self.exec_command(f"sudo systemctl reload {self.SERVICE_NAME}")
 
     # ------------------------------------------------------------------
     # Log access
